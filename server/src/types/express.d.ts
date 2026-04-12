@@ -1,10 +1,11 @@
-import type { InterfaceArticle, InterfaceTokenPayload } from './index.js';
+import type { IArticle } from './article.types.js';
+import type { ITokenPayload } from './auth.types.js';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: InterfaceTokenPayload;
-      article?: InterfaceArticle;
+      user?: ITokenPayload;
+      article?: IArticle;
     }
   }
 }

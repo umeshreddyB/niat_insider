@@ -1,49 +1,24 @@
 import type { Request, Response, NextFunction } from 'express';
-import bcrypt from 'bcrypt';
-import { User, mapUserToIUser } from '../models/user.model.js';
-import { HttpStatus, UserRole } from '../types/index.js';
-import { signToken } from '../utils/jwt.util.js';
-
-const BCRYPT_SALT_ROUNDS = 10;
-const MIN_PASSWORD_LENGTH = 8;
+import * as authService from '../services/auth.service.js';
+import { HttpStatus } from '../types/auth.types.js';
 
 export async function login(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { email, password } = req.body as { email?: string; password?: string };
+    const body = req.body as { email?: string; password?: string };
+    const { email, password } = body;
 
     if (!email || !password) {
       res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Invalid credentials' });
       return;
     }
 
-    const emailNorm = email.trim().toLowerCase();
-    if (!emailNorm) {
+    const result = await authService.loginByEmailPassword(email, password);
+    if (result === null) {
       res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Invalid credentials' });
       return;
     }
 
-    const userDoc = await User.findOne({ email: emailNorm }).exec();
-    if (userDoc === null) {
-      res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Invalid credentials' });
-      return;
-    }
-
-    const passwordOk = await bcrypt.compare(password, userDoc.password);
-    if (!passwordOk) {
-      res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Invalid credentials' });
-      return;
-    }
-
-    const token = signToken({
-      userId: userDoc._id.toString(),
-      role: userDoc.role,
-      campus: userDoc.campus,
-    });
-
-    res.status(HttpStatus.OK).json({
-      token,
-      user: mapUserToIUser(userDoc),
-    });
+    res.status(HttpStatus.OK).json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Something went wrong' });
@@ -52,52 +27,50 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
 
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { email, password, campus } = req.body as {
-      email?: string;
-      password?: string;
-      campus?: string;
-    };
+    const body = req.body as { email?: string; password?: string; campus?: string };
+    const { email, password, campus } = body;
 
     if (!email || !password || !campus) {
       res.status(400).json({ message: 'email, password, and campus are required' });
       return;
     }
 
-    const emailNorm = email.trim().toLowerCase();
-    const campusTrim = campus.trim();
-    if (!emailNorm || !campusTrim) {
-      res.status(400).json({ message: 'email and campus cannot be empty' });
+    const result = await authService.registerUser(email, password, campus);
+
+    if (result === 'validation') {
+      res.status(400).json({
+        message: 'Invalid input (check email, campus, and password length)',
+      });
       return;
     }
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
-      return;
-    }
-
-    const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
-
-    const userDoc = await User.create({
-      email: emailNorm,
-      password: passwordHash,
-      role: UserRole.MODERATOR,
-      campus: campusTrim,
-    });
-
-    const token = signToken({
-      userId: userDoc._id.toString(),
-      role: userDoc.role,
-      campus: userDoc.campus,
-    });
-
-    res.status(HttpStatus.CREATED).json({
-      token,
-      user: mapUserToIUser(userDoc),
-    });
-  } catch (err: any) {
-    if (err.code === 11000) {
+    if (result === 'duplicate') {
       res.status(409).json({ message: 'Email already registered' });
       return;
     }
+
+    res.status(HttpStatus.CREATED).json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Something went wrong' });
+  }
+}
+
+export async function getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const payload = req.user;
+    if (!payload) {
+      res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const user = await authService.getUserById(payload.userId);
+    if (user === null) {
+      res.status(HttpStatus.NOT_FOUND).json({ message: 'User not found' });
+      return;
+    }
+
+    res.status(HttpStatus.OK).json(user);
+  } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Something went wrong' });
   }

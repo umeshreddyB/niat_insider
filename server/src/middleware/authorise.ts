@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
-import { Article, mapArticleToInterfaceArticle } from '../models/article.model.js';
-import { HttpStatus, UserRole } from '../types/index.js';
+import { Article, mapArticleToIArticle } from '../models/article.model.js';
+import { HttpStatus, UserRole } from '../types/auth.types.js';
 
 export async function authoriseArticleCampus(
   req: Request,
@@ -31,7 +31,7 @@ export async function authoriseArticleCampus(
       return;
     }
 
-    req.article = mapArticleToInterfaceArticle(doc);
+    req.article = mapArticleToIArticle(doc);
     next();
   } catch (err) {
     console.error(err);

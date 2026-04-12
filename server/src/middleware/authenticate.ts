@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { HttpStatus } from '../types/index.js';
-import { verifyToken } from '../utils/jwt.util.js';
+import * as authService from '../services/auth.service.js';
+import { HttpStatus } from '../types/auth.types.js';
 
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
   const header = req.headers.authorization;
@@ -26,7 +26,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   }
 
   try {
-    req.user = verifyToken(token);
+    req.user = authService.verifyToken(token);
     next();
   } catch (err) {
     console.error(err);
@@ -36,8 +36,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
     }
     if (err instanceof jwt.JsonWebTokenError) {
       res.status(HttpStatus.UNAUTHORIZED).json({
-        message:
-          'Invalid token (wrong secret or malformed). Log in again and ensure JWT_SECRET matches the server that issued the token.',
+        message: 'Invalid token. Log in again with a fresh token.',
       });
       return;
     }

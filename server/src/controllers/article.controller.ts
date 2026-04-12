@@ -1,7 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
-import { Article, mapArticleToInterfaceArticle } from '../models/article.model.js';
-import { ArticleStatus, HttpStatus, UserRole, type InterfaceArticle } from '../types/index.js';
+import { Article, mapArticleToIArticle } from '../models/article.model.js';
+import { ArticleStatus, type IArticle } from '../types/article.types.js';
+import { HttpStatus, UserRole } from '../types/auth.types.js';
 
 export async function listArticles(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -14,7 +15,7 @@ export async function listArticles(req: Request, res: Response, next: NextFuncti
     const filter = user.role === UserRole.MODERATOR ? { campus: user.campus } : {};
 
     const docs = await Article.find(filter).sort({ createdAt: -1 }).exec();
-    const articles: InterfaceArticle[] = docs.map((d) => mapArticleToInterfaceArticle(d));
+    const articles: IArticle[] = docs.map((d) => mapArticleToIArticle(d));
     res.status(HttpStatus.OK).json(articles);
   } catch (err) {
     console.error(err);
@@ -69,7 +70,7 @@ export async function createArticle(req: Request, res: Response): Promise<void> 
       status,
     });
 
-    res.status(HttpStatus.CREATED).json(mapArticleToInterfaceArticle(doc));
+    res.status(HttpStatus.CREATED).json(mapArticleToIArticle(doc));
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Something went wrong' });
@@ -151,7 +152,7 @@ export async function updateArticle(req: Request, res: Response, next: NextFunct
       return;
     }
 
-    res.status(HttpStatus.OK).json(mapArticleToInterfaceArticle(updated));
+    res.status(HttpStatus.OK).json(mapArticleToIArticle(updated));
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Something went wrong' });

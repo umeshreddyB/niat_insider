@@ -1,13 +1,16 @@
-import 'dotenv/config';
+import { connectDB, env } from './config/env.config.js';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
-import connectDB from './config/env.config.js';
-import authRoutes from './routes/auth.routes.js';
 import articleRoutes from './routes/article.routes.js';
+import authRoutes from './routes/auth.routes.js';
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: env.corsOrigin === '*' ? true : env.corsOrigin,
+  }),
+);
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
@@ -22,9 +25,8 @@ async function startServer(): Promise<void> {
   try {
     await connectDB();
 
-    const port = process.env.PORT || '5000';
-    app.listen(Number(port), () => {
-      console.log(`Server is running on port ${port}`);
+    app.listen(env.port, () => {
+      console.log(`Server is running on port ${env.port}`);
     });
   } catch (err) {
     console.error('Failed to start server:', err);

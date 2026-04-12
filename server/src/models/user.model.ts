@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { UserRole, type IUser } from '../types/index.js';
+import { UserRole, type IUser } from '../types/auth.types.js';
 
 export interface IUserDoc extends mongoose.Document {
   email: string;
