@@ -1,53 +1,60 @@
-# NIAT Insider — Moderator Platform
+# NIAT Insider
 
-Secure moderator dashboard: **JWT login**, **campus-scoped articles** (MongoDB + Express + React + TypeScript).
+NIAT Insider is a small internal web app for campus news: **moderators** sign in and work with articles for *their* school only, and **admins** invite moderators and manage which school each person belongs to. Everything sits on a classic **MongoDB + Express API** and a **React (TypeScript)** frontend, with **JWT** auth so sessions stay stateless.
 
-## Prerequisites
+If you’re setting this up for the first time, skim “Run it locally” first, then read “Who can log in and how” so you know how to create the admin and moderators.
 
-- **Node.js** 20+ (recommended)
-- **MongoDB** running locally (`mongodb://localhost:27017`) or a MongoDB Atlas URI
+---
 
-## Clone and install
+## What you’ll need
+
+- **Node.js** 20 or newer works well.
+- **MongoDB** — either running on your machine (`mongodb://localhost:27017/...`) or a hosted URI such as Atlas.
+
+---
+
+## Get the code and install
 
 ```bash
 git clone <your-repo-url> niat-insider
 cd niat-insider
 ```
 
-Install dependencies for **both** apps:
+Install dependencies in both folders:
 
 ```bash
 cd server && npm install && cd ..
 cd client && npm install && cd ..
 ```
 
-## Environment files
+---
 
-Real `.env` files are **not** committed. Copy the tracked `*.example` files and rename them:
+## Environment variables
 
-| Example | Copy to | Used when |
-|--------|---------|-----------|
-| `server/env.development.example` | `server/.env` | Local API (`npm run dev`) |
-| `server/env.test.example` | `server/.env.test` | Test port / DB (`npm run start:test`) |
-| `server/env.production.example` | `server/.env.production` | Production (`npm start`) |
-| `client/env.development.example` | `client/.env.development` or `client/.env.local` | Vite dev |
-| `client/env.test.example` | `client/.env.test` | `npm run build:test` |
-| `client/env.production.example` | `client/.env.production` | `npm run build` |
+Real `.env` files are not committed to git. Copy the example files and rename them:
 
-### Critical values
+- **Server (local dev):** copy `server/env.development.example` → `server/.env` and fill in at least `MONGODB_URI`, `JWT_SECRET`, and the rest as in the example.
+- **Client (local dev):** copy `client/env.development.example` → `client/.env.development` if you need to override defaults.
 
-- **`CORS_ORIGIN` (server)** must include the **exact origin** of the React app (e.g. `http://localhost:5173` for Vite). Multiple origins: comma-separated, e.g. `http://localhost:5173,http://localhost:3000`.
-- **`VITE_API_BASE_URL` (client)** must match the API base (scheme + host + port), **no trailing slash**, e.g. `http://localhost:5000`.
+There are separate examples for test and production builds (`env.test.example`, `env.production.example`) — same idea: copy and adjust.
 
-After changing client env files, restart the Vite dev server.
+**Two values that trip people up:**
 
-## Run locally (development)
+- **`CORS_ORIGIN` on the server** must match the exact origin of your React app (scheme + host + port). For Vite locally that’s often `http://localhost:5173`. Multiple origins are fine: comma-separated, no spaces.
+- **`VITE_API_BASE_URL` on the client** should be your API root with **no trailing slash**, e.g. `http://localhost:5000`.
+
+After you change client env files, restart the Vite dev server so it picks them up.
+
+---
+
+## Run it locally
 
 **Terminal 1 — API**
 
 ```bash
 cd server
-cp env.development.example .env   # first time only; edit MONGODB_URI / secrets
+cp env.development.example .env
+# edit .env: MONGODB_URI, JWT_SECRET, etc.
 npm run build
 npm run dev
 ```
@@ -56,72 +63,67 @@ npm run dev
 
 ```bash
 cd client
-cp env.development.example .env.development   # first time; set VITE_API_BASE_URL if not using default
+cp env.development.example .env.development
+# optional: set VITE_API_BASE_URL if your API isn’t on the default
 npm run dev
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`). Sign in with accounts created as described below.
+Open whatever URL Vite prints (usually `http://localhost:5173`).
 
-### How to add an admin
+**Default API URL in dev:** if you don’t set `VITE_API_BASE_URL`, the client assumes the API is at `http://localhost:5000`, which matches the usual local server port.
 
-There is **no** “register as admin” screen in the app. The **first (and typical) admin** is created **once** on the machine that can reach MongoDB:
+---
 
-1. Ensure `server/.env` exists and **`MONGODB_URI`** points at your database (local or Atlas).
-2. From the **`server/`** directory run:
+## Who can log in and how
+
+There is **no public registration**. Moderators are created by an admin; the first admin is created **once** on the server with a script (there is no “sign up as admin” page).
+
+### Creating the first admin
+
+1. Make sure `server/.env` exists and `MONGODB_URI` points at a database you can reach.
+2. From the `server/` folder, run:
 
    ```bash
    node scripts/seed-admin.mjs
    ```
 
-3. The script creates one user with **`role: ADMIN`** and campus **`NIAT HQ (Admin)`**.  
-   **Defaults** (override with env vars when you run the command):
+3. That creates a user with role **ADMIN**. By default it uses:
+   - Email: `admin@niat-insider.local`
+   - Password: `ChangeMe123!`
+   - Name: `NIAT Admin`
 
-   | Variable | Default |
-   |----------|---------|
-   | `ADMIN_EMAIL` | `admin@niat-insider.local` |
-   | `ADMIN_PASSWORD` | `ChangeMe123!` |
-   | `ADMIN_NAME` | `NIAT Admin` |
-
-   Example with custom values (PowerShell):
+   You can override these when you run the script with `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_NAME` in the environment. On Windows PowerShell, for example:
 
    ```powershell
    $env:ADMIN_EMAIL="you@school.edu"; $env:ADMIN_PASSWORD="YourStrongPass1!"; node scripts/seed-admin.mjs
    ```
 
-4. If an admin with that email **already exists**, the script exits without changing anything.
-5. Open the app **Sign in** and log in with that email and password. You should land on **`/admin`**.
+4. If an admin with that email already exists, the script does nothing — safe to run again.
+5. Sign in through the app; admins are sent to `/admin`.
 
-**Additional admins:** not built into the UI. For demos, run the seed with a **different** `ADMIN_EMAIL` after the first admin exists, or insert a user in MongoDB with `role: "ADMIN"` and a bcrypt-hashed password (same shape as other users).
+Extra admin accounts aren’t created in the UI. For another admin you’d run the seed with a different email or insert a user in MongoDB with `role: "ADMIN"` and a bcrypt-hashed password (same general shape as other users).
 
-### Accounts (summary)
+### Moderators
 
-| Role | How the account is created |
-|------|----------------------------|
-| **Admin** | **Server script only** — see [How to add an admin](#how-to-add-an-admin) above. |
-| **Moderator** | An **admin** logs in, opens **Admin**, and uses **Add moderator** (name, email, password, campus). No public registration. |
+An admin signs in, opens **Admin**, and uses **Add moderator** (name, email, temporary password, school/campus). Moderators land on `/dashboard` after login and only see content for their campus.
 
-After login, **admins** go to `/admin` and **moderators** to `/dashboard`.
+Schools come from MongoDB: there’s a seeded list on startup, and admins can also **type a new school name** when adding a moderator — it gets saved automatically if it’s valid (length limits apply).
 
-## Deploy (Vercel + Render)
+---
 
-Typical setup: **API on Render**, **static client on Vercel**.
+## Deploying (e.g. Render + Vercel)
 
-1. **Render (API)**  
-   - Build: `cd server && npm install && npm run build`  
-   - Start: `cd server && npm start` (or `node dist/server.js` from `server/`)  
-   - Set environment variables to match `server/env.production.example`: **`MONGODB_URI`**, **`JWT_SECRET`**, **`JWT_EXPIRES_IN`**, **`PORT`** (Render often injects `PORT` — use it), **`CORS_ORIGIN`**.  
-   - **`CORS_ORIGIN`** must include your **Vercel site origin** exactly (e.g. `https://your-app.vercel.app`). Multiple origins: comma-separated, no spaces.  
-   - Optional health check path: **`GET /api/health`** returns `{ "ok": true }` (no database call).
+A common split is: **API on Render**, **static site on Vercel**.
 
-2. **Vercel (client)**  
-   - Root should contain `vercel.json` with SPA rewrite to `index.html` (already in this repo).  
-   - Set **`VITE_API_BASE_URL`** to your **public Render API URL** (no trailing slash), e.g. `https://your-service.onrender.com`.  
-   - Redeploy after changing env vars.
+**On the API host (Render or similar):** build the server (`npm install`, `npm run build`), start with `npm start` or `node dist/server.js` from `server/`, and set the same kinds of variables as in `server/env.production.example` — `MONGODB_URI`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `PORT` (many hosts set `PORT` for you), and especially **`CORS_ORIGIN`** including your real frontend origin, e.g. `https://your-app.vercel.app`.
 
-3. **Local vs production API URL**  
-   - **`npm run dev`** with **no** `VITE_API_BASE_URL` → client calls **`http://localhost:5000`** (run the API locally on that port).  
-   - **`vite build` / Vercel** with **no** `VITE_API_BASE_URL` → client uses the **default Render URL** baked into the app (or set `VITE_API_BASE_URL` on Vercel to your real API URL).  
-   - A leftover **`localhost`** value in a production build is **ignored** (replaced by the default deployed URL) unless **`VITE_USE_LOCAL_API=true`**.
+There’s a simple health check at **`GET /api/health`** that returns JSON like `{ "ok": true }` — useful for uptime checks; it doesn’t hit the database.
+
+**On Vercel:** this repo includes a `vercel.json` that sends all routes to `index.html` so the React router works. Set **`VITE_API_BASE_URL`** to your public API URL (no trailing slash). Redeploy after changing env vars.
+
+**Production build without `VITE_API_BASE_URL`:** the client falls back to a default API URL baked into the code (update that constant if your API lives elsewhere, or set the env var on Vercel). If a production build still has `localhost` in an env file by mistake, the app normally ignores it so you don’t accidentally point production at your laptop — unless you explicitly set `VITE_USE_LOCAL_API=true`.
+
+---
 
 ## Production-style commands
 
@@ -130,36 +132,32 @@ cd server && npm run build && npm start
 cd client && npm run build && npm run preview
 ```
 
-Test builds (example: API on port `5001` per `env.test.example`):
+Test-oriented builds can use the `env.test.example` files and the scripts in `package.json` (`start:test`, `build:test`, etc.).
 
-```bash
-cd server && npm run build && npm run start:test
-cd client && npm run build:test
-```
+---
 
-## API (summary)
+## API overview
 
-| Method | Path | Auth |
-|--------|------|------|
-| GET | `/api/health` | Public — liveness (Render / uptime) |
-| POST | `/api/auth/login` | Public |
-| GET | `/api/auth/me` | Bearer JWT |
-| GET | `/api/meta/campuses` | Public — **MongoDB** campus directory (seeded on start; **admins can add schools** by typing a new name when creating a moderator) |
-| GET / POST | `/api/admin/moderators` | Bearer JWT, **ADMIN** only — list / create moderators |
-| GET | `/api/articles` | Bearer — list scoped to moderator’s **campus** |
-| GET | `/api/articles/:id` | Bearer — **403** if article campus ≠ user campus |
-| PUT | `/api/articles/:id` | Same — edit `title`, `body`, `category`, optional **`imageUrl`** (https `http`/`https` URL; empty string removes cover) |
-| DELETE | `/api/articles/:id` | Same |
+Rough map of the HTTP API (details live in the code under `server/src`):
 
-**401** — missing/invalid token. **403** — valid token but wrong campus for that article.
+- **`GET /api/health`** — public; quick liveness check.
+- **`POST /api/auth/login`** — email + password; returns a JWT and user info.
+- **`GET /api/auth/me`** — current user; needs `Authorization: Bearer <token>`.
+- **`GET /api/meta/campuses`** — list of schools stored in MongoDB (seeded plus any added when inviting moderators).
+- **`GET /api/admin/moderators`** / **`POST /api/admin/moderators`** — admin only; list moderators or create one.
+- **Articles** under **`/api/articles`** — authenticated; moderators only see and edit articles for their own campus. Wrong campus → **403**. Missing or bad token → **401**.
 
-The moderator UI shows **cover images** from `imageUrl` (any public image URL). If unset or the URL fails to load, a branded gradient placeholder is shown.
+Article bodies support an optional **`imageUrl`** for a cover image (public `http`/`https` URL). If it’s missing or broken, the UI shows a gradient placeholder.
 
-## Project layout
+---
 
-- `server/src` — `config/` (env), `controllers/`, `services/`, `middleware/`, `routes/`, `models/`, `types/`
-- `client/src` — `pages/`, `components/`, `hooks/`, `services/`, `constants/`, `types/`
+## Where things live in the repo
 
-## Git workflow (assignment)
+- **`server/src`** — Express app: config, routes, controllers, services, middleware, Mongoose models, TypeScript types.
+- **`client/src`** — React app: pages, components, API helpers, auth context, etc.
 
-Use feature branches (e.g. `feature/auth-backend`, `feature/moderator-ui`), open PRs into `main`, and use conventional commits (`feat:`, `fix:`, `chore:`, `docs:`).
+---
+
+## Git habits (for coursework or teams)
+
+Feature branches (e.g. `feature/auth-backend`), pull requests into `main`, and conventional commits (`feat:`, `fix:`, `chore:`, `docs:`) keep history readable for you and reviewers.
