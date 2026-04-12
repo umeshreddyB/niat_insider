@@ -1,14 +1,15 @@
-import { connectDB, env } from './config/env.config.js';
+import { connectDB, env, parseCorsOrigin } from './config/env.config.js';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
 import articleRoutes from './routes/article.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import { HttpStatus } from './types/auth.types.js';
 
 const app = express();
 
 app.use(
   cors({
-    origin: env.corsOrigin === '*' ? true : env.corsOrigin,
+    origin: parseCorsOrigin(env.corsOrigin),
   }),
 );
 app.use(express.json());
@@ -18,7 +19,7 @@ app.use('/api/articles', articleRoutes);
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err);
-  res.status(500).json({ message: 'Internal server error' });
+  res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Internal server error' });
 });
 
 async function startServer(): Promise<void> {
