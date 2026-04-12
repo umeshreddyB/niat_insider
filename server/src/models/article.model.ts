@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import { ArticleStatus, type InterfaceArticle } from '../types/index.js';
+import { ArticleStatus, type IArticle } from '../types/article.types.js';
 
-export interface InterfaceArticleDoc extends mongoose.Document {
+export interface IArticleDoc extends mongoose.Document {
   title: string;
   body: string;
   category: string;
@@ -11,7 +11,7 @@ export interface InterfaceArticleDoc extends mongoose.Document {
   createdAt: Date;
 }
 
-const articleSchema = new mongoose.Schema<InterfaceArticleDoc>(
+const articleSchema = new mongoose.Schema<IArticleDoc>(
   {
     title: { type: String, required: true, trim: true },
     body: { type: String, required: true },
@@ -23,9 +23,9 @@ const articleSchema = new mongoose.Schema<InterfaceArticleDoc>(
   { timestamps: { createdAt: true, updatedAt: false } },
 );
 
-export const Article = mongoose.model<InterfaceArticleDoc>('Article', articleSchema);
+export const Article = mongoose.model<IArticleDoc>('Article', articleSchema);
 
-export function mapArticleToInterfaceArticle(doc: InterfaceArticleDoc): InterfaceArticle {
+export function mapArticleToIArticle(doc: IArticleDoc): IArticle {
   return {
     _id: doc._id.toString(),
     title: doc.title,

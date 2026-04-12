@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
-import { Article, mapArticleToInterfaceArticle } from '../models/article.model.js';
-import { HttpStatus, UserRole } from '../types/index.js';
+import * as articleService from '../services/article.service.js';
+import { HttpStatus } from '../types/auth.types.js';
 
 export async function authoriseArticleCampus(
   req: Request,
@@ -9,29 +9,30 @@ export async function authoriseArticleCampus(
 ): Promise<void> {
   try {
     const user = req.user;
-    if (!user) {
+    if (user === undefined) {
       res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Unauthorized' });
       return;
     }
 
-    const articleId = req.params.articleId;
-    if (!articleId) {
+    const rawId = req.params.articleId;
+    const articleId = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (articleId === undefined || articleId === '') {
       res.status(HttpStatus.NOT_FOUND).json({ message: 'Article not found' });
       return;
     }
 
-    const doc = await Article.findById(articleId).exec();
-    if (!doc) {
+    const article = await articleService.getArticleById(articleId);
+    if (article === null) {
       res.status(HttpStatus.NOT_FOUND).json({ message: 'Article not found' });
       return;
     }
 
-    if (user.role === UserRole.MODERATOR && doc.campus !== user.campus) {
+    if (articleService.isModeratorBlockedFromCampus(user, article.campus)) {
       res.status(HttpStatus.FORBIDDEN).json({ message: 'Cannot access resources outside your campus' });
       return;
     }
 
-    req.article = mapArticleToInterfaceArticle(doc);
+    req.article = article;
     next();
   } catch (err) {
     console.error(err);
