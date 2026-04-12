@@ -3,6 +3,7 @@ import { UserRole, type IUser } from '../types/auth.types.js';
 
 export interface IUserDoc extends mongoose.Document {
   email: string;
+  name: string;
   password: string;
   role: UserRole;
   campus: string;
@@ -12,6 +13,7 @@ export interface IUserDoc extends mongoose.Document {
 const userSchema = new mongoose.Schema<IUserDoc>(
   {
     email: { type: String, required: true, unique: true, trim: true, lowercase: true },
+    name: { type: String, required: true, trim: true },
     password: { type: String, required: true },
     role: { type: String, enum: Object.values(UserRole), required: true },
     campus: { type: String, required: true, trim: true },
@@ -25,6 +27,7 @@ export function mapUserToIUser(doc: IUserDoc): IUser {
   return {
     _id: doc._id.toString(),
     email: doc.email,
+    name: doc.name ?? 'User',
     role: doc.role,
     campus: doc.campus,
     createdAt: doc.createdAt,

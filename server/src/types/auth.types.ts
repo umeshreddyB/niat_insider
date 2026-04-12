@@ -17,6 +17,7 @@ export enum HttpStatus {
 export interface IUser {
   _id: string;
   email: string;
+  name: string;
   role: UserRole;
   campus: string;
   createdAt: Date;

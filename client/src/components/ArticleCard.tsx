@@ -23,7 +23,7 @@ export function ArticleCard({
   onDelete,
 }: Props) {
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-lg shadow-zinc-900/5 ring-1 ring-black/[0.03] transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-950/10">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 shadow-xl shadow-black/20 ring-1 ring-white/5 transition duration-300 hover:-translate-y-0.5 hover:border-teal-500/20 hover:shadow-teal-950/20">
       <div className="aspect-[16/10] w-full shrink-0 overflow-hidden">
         <ArticleCover
           src={article.imageUrl}
@@ -34,25 +34,25 @@ export function ArticleCard({
 
       <div className="flex flex-1 flex-col p-5 pt-4">
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-violet-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-violet-800">
+          <span className="inline-flex items-center rounded-full bg-teal-500/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-teal-300 ring-1 ring-teal-500/25">
             {article.category}
           </span>
-          <span className="text-[11px] font-medium text-zinc-400">{article.campus}</span>
+          <span className="text-[11px] font-medium text-zinc-500">{article.campus}</span>
         </div>
 
-        <h2 className="font-display text-lg leading-snug font-semibold tracking-tight text-zinc-900 md:text-xl">
+        <h2 className="font-display text-lg leading-snug font-semibold tracking-tight text-white md:text-xl">
           {article.title}
         </h2>
 
-        <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-zinc-600">
+        <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-zinc-400">
           {previewText(article.body, previewLength)}
         </p>
 
-        <div className="mt-5 flex flex-wrap gap-2 border-t border-zinc-100 pt-4">
+        <div className="mt-5 flex flex-wrap gap-2 border-t border-white/10 pt-4">
           <button
             type="button"
             onClick={() => onEdit(article)}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-zinc-900 px-3 py-2.5 text-sm font-semibold text-white shadow-md shadow-zinc-900/20 transition hover:bg-zinc-800 sm:flex-none"
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-teal-500 px-3 py-2.5 text-sm font-semibold text-zinc-950 shadow-md shadow-teal-900/30 transition hover:bg-teal-400 sm:flex-none"
           >
             <svg className="h-4 w-4 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
               <path
@@ -67,7 +67,7 @@ export function ArticleCard({
           <button
             type="button"
             onClick={() => onDelete(article)}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50/80 px-3 py-2.5 text-sm font-semibold text-red-800 transition hover:bg-red-100 sm:flex-none"
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-red-500/40 bg-red-950/50 px-3 py-2.5 text-sm font-semibold text-red-200 transition hover:bg-red-950/80 sm:flex-none"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
               <path

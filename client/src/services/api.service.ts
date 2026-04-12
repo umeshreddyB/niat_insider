@@ -38,11 +38,43 @@ async function requestJson(
 ): Promise<Response> {
   try {
     return await fetch(input, init);
+  } catch (err) {
+    const hint =
+      import.meta.env.DEV
+        ? 'Is the API running (e.g. npm run dev in server/) and is VITE_API_BASE_URL correct?'
+        : 'Check that the API is up (Render), VITE_API_BASE_URL matches your API URL, and CORS_ORIGIN on the server includes this site’s origin.';
+    const cause = err instanceof Error ? err.message : String(err);
+    throw new Error(`Cannot reach API at ${API_BASE_URL}. ${hint} (${cause})`);
+  }
+}
+
+/** Single read of the body; tolerates HTML/plain error pages from proxies */
+async function readJsonBody<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  if (!text.trim()) {
+    if (!res.ok) {
+      throw new Error(`Request failed (${res.status})`);
+    }
+    return {} as T;
+  }
+  try {
+    return JSON.parse(text) as T;
   } catch {
+    const hint = text.replace(/\s+/g, ' ').trim().slice(0, 160);
     throw new Error(
-      `Cannot reach API at ${API_BASE_URL}. Is the server running, and does CORS allow this origin?`,
+      res.ok ? 'Invalid JSON from server' : hint || `Request failed (${res.status})`,
     );
   }
+}
+
+function messageFromBody(data: unknown, fallback: string): string {
+  if (data && typeof data === 'object' && 'message' in data) {
+    const m = (data as { message?: unknown }).message;
+    if (typeof m === 'string' && m.length > 0) {
+      return m;
+    }
+  }
+  return fallback;
 }
 
 export interface LoginResponse {
@@ -57,12 +89,73 @@ export async function login(email: string, password: string): Promise<LoginRespo
     body: JSON.stringify({ email, password }),
   });
 
-  const data = (await res.json()) as LoginResponse & { message?: string };
+  const data = await readJsonBody<LoginResponse & { message?: string }>(res);
 
   if (!res.ok) {
-    throw new Error(data.message ?? 'Login failed');
+    throw new Error(messageFromBody(data, 'Login failed'));
   }
 
+  return data;
+}
+
+export async function getCampuses(): Promise<string[]> {
+  const res = await requestJson(apiUrl('/api/meta/campuses'));
+  const data = await readJsonBody<{ campuses?: string[]; message?: string }>(res);
+  if (!res.ok) {
+    throw new Error(messageFromBody(data, 'Could not load campuses'));
+  }
+  return data.campuses ?? [];
+}
+
+export async function listModerators(): Promise<IUser[]> {
+  const res = await requestJson(apiUrl('/api/admin/moderators'), {
+    headers: authHeaders(),
+  });
+
+  if (res.status === 401) {
+    clearStoredToken();
+    throw new Error('Session expired. Please log in again.');
+  }
+
+  if (res.status === 403) {
+    throw new Error('Admin access required');
+  }
+
+  const data = await readJsonBody<IUser[] | { message?: string }>(res);
+  if (!res.ok) {
+    throw new Error(messageFromBody(data, 'Failed to load moderators'));
+  }
+  if (!Array.isArray(data)) {
+    throw new Error('Unexpected response when loading moderators');
+  }
+  return data;
+}
+
+export async function createModerator(payload: {
+  email: string;
+  password: string;
+  name: string;
+  campus: string;
+}): Promise<IUser> {
+  const res = await requestJson(apiUrl('/api/admin/moderators'), {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  if (res.status === 401) {
+    clearStoredToken();
+    throw new Error('Session expired. Please log in again.');
+  }
+
+  if (res.status === 403) {
+    throw new Error('Admin access required');
+  }
+
+  const data = await readJsonBody<IUser & { message?: string }>(res);
+  if (!res.ok) {
+    throw new Error(messageFromBody(data, 'Could not create moderator'));
+  }
   return data;
 }
 
@@ -76,12 +169,25 @@ export async function getMe(): Promise<IUser> {
     throw new Error('Session expired. Please log in again.');
   }
 
-  if (!res.ok) {
-    const data = (await res.json().catch(() => ({}))) as { message?: string };
-    throw new Error(data.message ?? 'Failed to load profile');
+  if (res.status === 404) {
+    clearStoredToken();
+    throw new Error('Account not found. Please sign in again.');
   }
 
-  return (await res.json()) as IUser;
+  const raw = await readJsonBody<IUser & { message?: string }>(res);
+
+  if (!res.ok) {
+    if (res.status >= 500) {
+      throw new Error(messageFromBody(raw, 'Server error — try again in a moment.'));
+    }
+    clearStoredToken();
+    throw new Error(messageFromBody(raw, 'Failed to load profile'));
+  }
+
+  return {
+    ...raw,
+    name: raw.name ?? raw.email,
+  };
 }
 
 interface ArticleFromApi extends Article {
@@ -111,13 +217,14 @@ export async function getArticles(): Promise<Article[]> {
     throw new Error('Session expired. Please log in again.');
   }
 
+  const data = await readJsonBody<ArticleFromApi[] | { message?: string }>(res);
   if (!res.ok) {
-    const data = (await res.json().catch(() => ({}))) as { message?: string };
-    throw new Error(data.message ?? 'Failed to load articles');
+    throw new Error(messageFromBody(data, 'Failed to load articles'));
   }
-
-  const list = (await res.json()) as ArticleFromApi[];
-  return list.map(normalizeArticle);
+  if (!Array.isArray(data)) {
+    throw new Error('Unexpected response when loading articles');
+  }
+  return data.map(normalizeArticle);
 }
 
 export async function updateArticle(
@@ -135,13 +242,12 @@ export async function updateArticle(
     throw new Error('Session expired. Please log in again.');
   }
 
+  const data = await readJsonBody<ArticleFromApi & { message?: string }>(res);
   if (!res.ok) {
-    const data = (await res.json().catch(() => ({}))) as { message?: string };
-    throw new Error(data.message ?? 'Update failed');
+    throw new Error(messageFromBody(data, 'Update failed'));
   }
 
-  const raw = (await res.json()) as ArticleFromApi;
-  return normalizeArticle(raw);
+  return normalizeArticle(data);
 }
 
 export async function deleteArticle(id: string): Promise<void> {
@@ -155,8 +261,8 @@ export async function deleteArticle(id: string): Promise<void> {
     throw new Error('Session expired. Please log in again.');
   }
 
+  const data = await readJsonBody<{ message?: string }>(res);
   if (!res.ok) {
-    const data = (await res.json().catch(() => ({}))) as { message?: string };
-    throw new Error(data.message ?? 'Delete failed');
+    throw new Error(messageFromBody(data, 'Delete failed'));
   }
 }

@@ -63,24 +63,24 @@ export function EditArticleModal({ article, onClose, onSave }: Props) {
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full max-w-xl overflow-hidden rounded-2xl border border-white/20 bg-white shadow-2xl shadow-violet-950/20"
+        className="max-h-[92vh] w-full max-w-xl overflow-hidden rounded-2xl border border-teal-500/25 bg-zinc-950 shadow-2xl shadow-teal-950/40"
         role="dialog"
         aria-labelledby="edit-article-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="border-b border-zinc-100 bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-4">
+        <div className="border-b border-white/10 bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-700 px-6 py-4">
           <h2 id="edit-article-title" className="m-0 font-display text-xl font-semibold text-white">
             Edit article
           </h2>
-          <p className="mt-1 mb-0 text-sm text-violet-100">Update content and cover image URL</p>
+          <p className="mt-1 mb-0 text-sm text-teal-50/90">Update content and cover image URL</p>
         </div>
 
         <form onSubmit={handleSubmit} className="max-h-[calc(92vh-5rem)] overflow-y-auto p-6">
-          <div className="mb-5 overflow-hidden rounded-xl border border-zinc-200">
+          <div className="mb-5 overflow-hidden rounded-xl border border-white/10 bg-zinc-900/50">
             <div className="aspect-[2/1] max-h-48 w-full">
               <ArticleCover src={previewUrl} alt="Cover preview" className="h-full w-full" />
             </div>
-            <p className="m-0 bg-zinc-50 px-3 py-2 text-center text-[11px] text-zinc-500">
+            <p className="m-0 bg-zinc-900/80 px-3 py-2 text-center text-[11px] text-zinc-400">
               Live preview — use any https image link (Unsplash, CDN, etc.)
             </p>
           </div>
@@ -97,7 +97,7 @@ export function EditArticleModal({ article, onClose, onSave }: Props) {
                 placeholder="https://images.unsplash.com/..."
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                className="w-full rounded-xl border border-white/10 bg-zinc-900/80 px-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-teal-500/60 focus:outline-none focus:ring-2 focus:ring-teal-500/25"
               />
               <p className="mt-1.5 text-xs text-zinc-500">Leave empty to use the gradient placeholder.</p>
             </div>
@@ -111,7 +111,7 @@ export function EditArticleModal({ article, onClose, onSave }: Props) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
-                className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                className="w-full rounded-xl border border-white/10 bg-zinc-900/80 px-3 py-2.5 text-sm text-zinc-100 focus:border-teal-500/60 focus:outline-none focus:ring-2 focus:ring-teal-500/25"
               />
             </div>
 
@@ -124,7 +124,7 @@ export function EditArticleModal({ article, onClose, onSave }: Props) {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 required
-                className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                className="w-full rounded-xl border border-white/10 bg-zinc-900/80 px-3 py-2.5 text-sm text-zinc-100 focus:border-teal-500/60 focus:outline-none focus:ring-2 focus:ring-teal-500/25"
               />
             </div>
 
@@ -138,20 +138,20 @@ export function EditArticleModal({ article, onClose, onSave }: Props) {
                 onChange={(e) => setBody(e.target.value)}
                 required
                 rows={7}
-                className="w-full resize-y rounded-xl border border-zinc-200 px-3 py-2.5 text-sm leading-relaxed focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                className="w-full resize-y rounded-xl border border-white/10 bg-zinc-900/80 px-3 py-2.5 text-sm leading-relaxed text-zinc-100 focus:border-teal-500/60 focus:outline-none focus:ring-2 focus:ring-teal-500/25"
               />
             </div>
           </div>
 
           {saveError ? (
-            <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-red-100">{saveError}</p>
+            <p className="mt-4 rounded-lg border border-red-500/30 bg-red-950/50 px-3 py-2 text-sm text-red-200">{saveError}</p>
           ) : null}
 
-          <div className="mt-6 flex flex-wrap gap-3 border-t border-zinc-100 pt-5">
+          <div className="mt-6 flex flex-wrap gap-3 border-t border-white/10 pt-5">
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex flex-1 items-center justify-center rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-zinc-900/25 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+              className="inline-flex flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-900/40 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
             >
               {saving ? 'Saving…' : 'Save changes'}
             </button>
@@ -159,7 +159,7 @@ export function EditArticleModal({ article, onClose, onSave }: Props) {
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+              className="rounded-xl border border-white/15 bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-zinc-200 hover:bg-zinc-800 disabled:opacity-50"
             >
               Cancel
             </button>

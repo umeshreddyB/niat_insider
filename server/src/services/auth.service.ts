@@ -3,6 +3,7 @@ import jwt, { type SignOptions } from 'jsonwebtoken';
 import { env } from '../config/env.config.js';
 import { BCRYPT_SALT_ROUNDS, MIN_PASSWORD_LENGTH } from '../constants/app.constants.js';
 import { User, mapUserToIUser } from '../models/user.js';
+import * as campusService from './campus.service.js';
 import { UserRole, type IUser, type ITokenPayload } from '../types/auth.types.js';
 
 function isMongoDuplicateKey(err: unknown): boolean {
@@ -68,19 +69,26 @@ export async function loginByEmailPassword(
   return { token, user: mapUserToIUser(userDoc) };
 }
 
-export async function registerUser(
+/** Admin creates a moderator account for a chosen campus */
+export async function createModeratorByAdmin(
   email: string,
   password: string,
+  name: string,
   campus: string,
-): Promise<{ token: string; user: IUser } | 'duplicate' | 'validation'> {
+): Promise<{ ok: true; user: IUser } | { ok: false; reason: 'duplicate' | 'validation' }> {
   const emailNorm = email.trim().toLowerCase();
   const campusTrim = campus.trim();
+  const nameTrim = name.trim();
 
-  if (!emailNorm || !campusTrim) {
-    return 'validation';
+  if (!emailNorm || !campusTrim || !nameTrim) {
+    return { ok: false, reason: 'validation' };
+  }
+  const campusOk = await campusService.ensureCampusExistsForAdmin(campusTrim);
+  if (!campusOk.ok) {
+    return { ok: false, reason: 'validation' };
   }
   if (password.length < MIN_PASSWORD_LENGTH) {
-    return 'validation';
+    return { ok: false, reason: 'validation' };
   }
 
   const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
@@ -88,24 +96,23 @@ export async function registerUser(
   try {
     const userDoc = await User.create({
       email: emailNorm,
+      name: nameTrim,
       password: passwordHash,
       role: UserRole.MODERATOR,
       campus: campusTrim,
     });
-
-    const token = signToken({
-      userId: userDoc._id.toString(),
-      role: userDoc.role,
-      campus: userDoc.campus,
-    });
-
-    return { token, user: mapUserToIUser(userDoc) };
+    return { ok: true, user: mapUserToIUser(userDoc) };
   } catch (err: unknown) {
     if (isMongoDuplicateKey(err)) {
-      return 'duplicate';
+      return { ok: false, reason: 'duplicate' };
     }
     throw err;
   }
+}
+
+export async function listModeratorsForAdmin(): Promise<IUser[]> {
+  const docs = await User.find({ role: UserRole.MODERATOR }).sort({ createdAt: -1 }).exec();
+  return docs.map((d) => mapUserToIUser(d));
 }
 
 export async function getUserById(userId: string): Promise<IUser | null> {

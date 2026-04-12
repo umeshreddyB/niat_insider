@@ -32,7 +32,7 @@ export function DeleteConfirmDialog({ article, onCancel, onConfirm }: Props) {
   return (
     <div className="fixed inset-0 z-[1001] flex items-center justify-center bg-zinc-900/60 p-4 backdrop-blur-sm">
       <div
-        className="w-full max-w-md overflow-hidden rounded-2xl border border-white/20 bg-white shadow-2xl"
+        className="w-full max-w-md overflow-hidden rounded-2xl border border-teal-500/20 bg-zinc-950 shadow-2xl shadow-black/50"
         role="alertdialog"
         aria-labelledby="delete-title"
       >
@@ -40,20 +40,22 @@ export function DeleteConfirmDialog({ article, onCancel, onConfirm }: Props) {
           <ArticleCover src={article.imageUrl} alt={article.title} className="h-full w-full" />
         </div>
         <div className="p-6">
-          <h2 id="delete-title" className="m-0 font-display text-xl font-semibold text-zinc-900">
+          <h2 id="delete-title" className="m-0 font-display text-xl font-semibold text-zinc-50">
             Delete this article?
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-zinc-600">
-            <span className="font-semibold text-zinc-800">{article.title}</span> will be permanently removed.
+          <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+            <span className="font-semibold text-teal-200/90">{article.title}</span> will be permanently removed.
             This cannot be undone.
           </p>
-          {err ? <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{err}</p> : null}
+          {err ? (
+            <p className="mt-3 rounded-lg border border-red-500/30 bg-red-950/50 px-3 py-2 text-sm text-red-200">{err}</p>
+          ) : null}
           <div className="mt-6 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={handleConfirm}
               disabled={working}
-              className="inline-flex flex-1 items-center justify-center rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-900/20 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+              className="inline-flex flex-1 items-center justify-center rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-950/40 hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
             >
               {working ? 'Deleting…' : 'Delete permanently'}
             </button>
@@ -61,7 +63,7 @@ export function DeleteConfirmDialog({ article, onCancel, onConfirm }: Props) {
               type="button"
               onClick={onCancel}
               disabled={working}
-              className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+              className="rounded-xl border border-white/15 bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-zinc-200 hover:bg-zinc-800 disabled:opacity-50"
             >
               Cancel
             </button>
