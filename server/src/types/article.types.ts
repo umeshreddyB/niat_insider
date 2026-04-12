@@ -13,3 +13,21 @@ export interface IArticle {
   status: ArticleStatus;
   createdAt: Date;
 }
+
+/** JSON body for POST /api/articles */
+export interface CreateArticleBody {
+  title?: string;
+  body?: string;
+  category?: string;
+  campus?: string;
+  status?: string;
+}
+
+/** JSON body for PATCH /api/articles/:articleId */
+export interface UpdateArticleBody {
+  title?: string;
+  body?: string;
+  category?: string;
+  campus?: string;
+  status?: string;
+}

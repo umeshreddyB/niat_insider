@@ -1,21 +1,17 @@
 import type { Request, Response, NextFunction } from 'express';
-import mongoose from 'mongoose';
-import { Article, mapArticleToIArticle } from '../models/article.model.js';
-import { ArticleStatus, type IArticle } from '../types/article.types.js';
-import { HttpStatus, UserRole } from '../types/auth.types.js';
+import * as articleService from '../services/article.service.js';
+import type { CreateArticleBody, UpdateArticleBody } from '../types/article.types.js';
+import { HttpStatus } from '../types/auth.types.js';
 
 export async function listArticles(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const user = req.user;
-    if (!user) {
+    if (user === undefined) {
       res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Unauthorized' });
       return;
     }
 
-    const filter = user.role === UserRole.MODERATOR ? { campus: user.campus } : {};
-
-    const docs = await Article.find(filter).sort({ createdAt: -1 }).exec();
-    const articles: IArticle[] = docs.map((d) => mapArticleToIArticle(d));
+    const articles = await articleService.listArticlesForUser(user);
     res.status(HttpStatus.OK).json(articles);
   } catch (err) {
     console.error(err);
@@ -23,54 +19,23 @@ export async function listArticles(req: Request, res: Response, next: NextFuncti
   }
 }
 
-export async function createArticle(req: Request, res: Response): Promise<void> {
+export async function createArticle(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const user = req.user;
-    if (!user) {
+    if (user === undefined) {
       res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Unauthorized' });
-      console.error('Unauthorized');
       return;
     }
 
-    const b = req.body as {
-      title?: string;
-      body?: string;
-      category?: string;
-      campus?: string;
-      status?: string;
-    };
+    const body = req.body as CreateArticleBody;
+    const result = await articleService.createArticle(user, body);
 
-    if (!b.title || !b.body || !b.category) {
-      res.status(400).json({ message: 'title, body, and category are required' });
+    if (result.ok === false) {
+      res.status(400).json({ message: 'title, body, and category are required (campus required for admin)' });
       return;
     }
 
-    let status: ArticleStatus = ArticleStatus.DRAFT;
-    if (b.status === ArticleStatus.PUBLISHED || b.status === ArticleStatus.DRAFT) {
-      status = b.status;
-    }
-
-    let campus: string;
-    if (user.role === UserRole.MODERATOR) {
-      campus = user.campus;
-    } else {
-      if (!b.campus || !b.campus.trim()) {
-        res.status(400).json({ message: 'campus is required for admin-created articles' });
-        return;
-      }
-      campus = b.campus.trim();
-    }
-
-    const doc = await Article.create({
-      title: b.title.trim(),
-      body: b.body.trim(),
-      category: b.category.trim(),
-      campus,
-      authorId: new mongoose.Types.ObjectId(user.userId),
-      status,
-    });
-
-    res.status(HttpStatus.CREATED).json(mapArticleToIArticle(doc));
+    res.status(HttpStatus.CREATED).json(result.article);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Something went wrong' });
@@ -79,7 +44,7 @@ export async function createArticle(req: Request, res: Response): Promise<void> 
 
 export function getArticleById(req: Request, res: Response): void {
   const article = req.article;
-  if (!article) {
+  if (article === undefined) {
     res.status(HttpStatus.NOT_FOUND).json({ message: 'Article not found' });
     return;
   }
@@ -90,69 +55,28 @@ export async function updateArticle(req: Request, res: Response, next: NextFunct
   try {
     const user = req.user;
     const existing = req.article;
-    if (!user || !existing) {
+    if (user === undefined || existing === undefined) {
       res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Unauthorized' });
       return;
     }
 
-    const b = req.body as {
-      title?: string;
-      body?: string;
-      category?: string;
-      campus?: string;
-      status?: string;
-    };
+    const patch = req.body as UpdateArticleBody;
+    const result = await articleService.updateArticle(user, existing, patch);
 
-    if (b.campus !== undefined && b.campus !== '') {
-      const newCampus = b.campus.trim();
-      if (!newCampus) {
-        res.status(400).json({ message: 'Invalid campus' });
-        return;
-      }
-      if (user.role === UserRole.MODERATOR && newCampus !== user.campus) {
+    if (result.ok === false) {
+      if (result.reason === 'forbidden') {
         res.status(HttpStatus.FORBIDDEN).json({ message: 'Cannot assign article to another campus' });
         return;
       }
-    }
-
-    const $set: {
-      title?: string;
-      body?: string;
-      category?: string;
-      campus?: string;
-      status?: ArticleStatus;
-    } = {};
-
-    if (b.title !== undefined) {
-      $set.title = b.title.trim();
-    }
-    if (b.body !== undefined) {
-      $set.body = b.body.trim();
-    }
-    if (b.category !== undefined) {
-      $set.category = b.category.trim();
-    }
-    if (b.status !== undefined) {
-      if (b.status === ArticleStatus.PUBLISHED || b.status === ArticleStatus.DRAFT) {
-        $set.status = b.status;
+      if (result.reason === 'not_found') {
+        res.status(HttpStatus.NOT_FOUND).json({ message: 'Article not found' });
+        return;
       }
-    }
-    if (b.campus !== undefined && b.campus.trim() !== '') {
-      $set.campus = b.campus.trim();
-    }
-
-    if (Object.keys($set).length === 0) {
-      res.status(HttpStatus.OK).json(existing);
+      res.status(400).json({ message: 'Invalid input' });
       return;
     }
 
-    const updated = await Article.findByIdAndUpdate(existing._id, { $set }, { new: true }).exec();
-    if (!updated) {
-      res.status(HttpStatus.NOT_FOUND).json({ message: 'Article not found' });
-      return;
-    }
-
-    res.status(HttpStatus.OK).json(mapArticleToIArticle(updated));
+    res.status(HttpStatus.OK).json(result.article);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Something went wrong' });
@@ -162,12 +86,17 @@ export async function updateArticle(req: Request, res: Response, next: NextFunct
 export async function deleteArticle(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const existing = req.article;
-    if (!existing) {
+    if (existing === undefined) {
       res.status(HttpStatus.NOT_FOUND).json({ message: 'Article not found' });
       return;
     }
 
-    await Article.findByIdAndDelete(existing._id).exec();
+    const deleted = await articleService.deleteArticleById(existing._id);
+    if (!deleted) {
+      res.status(HttpStatus.NOT_FOUND).json({ message: 'Article not found' });
+      return;
+    }
+
     res.status(HttpStatus.OK).json({ message: 'Deleted' });
   } catch (err) {
     console.error(err);
