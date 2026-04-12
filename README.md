@@ -76,6 +76,32 @@ cd server && npm run build && npm run start:test
 cd client && npm run build:test
 ```
 
+## Deploy on Render (or similar PaaS)
+
+`.env` files are **not** on the server. Set variables in the host’s **Environment** UI (or secrets).
+
+**Web service settings**
+
+| Setting | Suggested value |
+|--------|-------------------|
+| **Root Directory** | `server` (if the repo root contains `client/` + `server/`) |
+| **Build Command** | `npm install && npm run build` |
+| **Start Command** | `npm start` |
+
+Use **`npm start`**, not `npm run dev`. `dev` is for local machines; production should use `NODE_ENV=production` and the compiled `dist/` output.
+
+**Required environment variables** (names must match exactly):
+
+| Variable | Example / notes |
+|----------|-----------------|
+| `PORT` | Render usually sets this automatically. If your host does not, add e.g. `10000`. |
+| `MONGODB_URI` | MongoDB Atlas connection string (or other Mongo URL). **Required** — without it the app exits on boot. |
+| `JWT_SECRET` | Long random string. |
+| `JWT_EXPIRES_IN` | e.g. `7d` or `1d` |
+| `CORS_ORIGIN` | Your deployed **frontend** origin, e.g. `https://your-app.onrender.com` or comma-separated list. |
+
+After saving env vars, **redeploy** or restart the service.
+
 ## API (summary)
 
 | Method | Path | Auth |
