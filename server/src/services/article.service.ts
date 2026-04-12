@@ -8,6 +8,15 @@ import {
 } from '../types/article.types.js';
 import { UserRole, type ITokenPayload } from '../types/auth.types.js';
 
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const u = new URL(value);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export async function listArticlesForUser(user: ITokenPayload): Promise<IArticle[]> {
   const filter = user.role === UserRole.MODERATOR ? { campus: user.campus } : {};
   const docs = await Article.find(filter).sort({ createdAt: -1 }).exec();
@@ -22,10 +31,11 @@ export async function getArticleById(articleId: string): Promise<IArticle | null
   return mapArticleToIArticle(doc);
 }
 
-/** Moderators may only access articles that belong to their campus. */
+
 export function isModeratorBlockedFromCampus(user: ITokenPayload, articleCampus: string): boolean {
   return user.role === UserRole.MODERATOR && articleCampus !== user.campus;
 }
+
 
 export async function createArticle(
   user: ITokenPayload,
@@ -46,59 +56,37 @@ export async function createArticle(
     return { ok: false, reason: 'bad_input' };
   }
 
-  let status: ArticleStatus = ArticleStatus.DRAFT;
-  if (body.status === ArticleStatus.PUBLISHED || body.status === ArticleStatus.DRAFT) {
-    status = body.status;
-  }
-
-  let campus: string;
-  if (user.role === UserRole.MODERATOR) {
-    campus = user.campus;
-  } else {
-    const c = body.campus?.trim();
-    if (c === undefined || c === '') {
-      return { ok: false, reason: 'bad_input' };
+  let imageUrl: string | undefined;
+  if (body.imageUrl !== undefined) {
+    const t = body.imageUrl.trim();
+    if (t !== '') {
+      if (!isValidHttpUrl(t)) {
+        return { ok: false, reason: 'bad_input' };
+      }
+      imageUrl = t;
     }
-    campus = c;
   }
 
   const doc = await Article.create({
     title: titleRaw.trim(),
     body: bodyRaw.trim(),
     category: categoryRaw.trim(),
-    campus,
+    ...(imageUrl !== undefined ? { imageUrl } : {}),
+    campus: user.campus,
     authorId: new mongoose.Types.ObjectId(user.userId),
-    status,
+    status: ArticleStatus.DRAFT,
   });
 
   return { ok: true, article: mapArticleToIArticle(doc) };
 }
 
+
 export async function updateArticle(
-  user: ITokenPayload,
   existing: IArticle,
   patch: UpdateArticleBody,
-): Promise<
-  | { ok: true; article: IArticle }
-  | { ok: false; reason: 'bad_input' | 'forbidden' | 'not_found' }
-> {
-  if (patch.campus !== undefined && patch.campus !== '') {
-    const newCampus = patch.campus.trim();
-    if (newCampus === '') {
-      return { ok: false, reason: 'bad_input' };
-    }
-    if (user.role === UserRole.MODERATOR && newCampus !== user.campus) {
-      return { ok: false, reason: 'forbidden' };
-    }
-  }
-
-  const $set: {
-    title?: string;
-    body?: string;
-    category?: string;
-    campus?: string;
-    status?: ArticleStatus;
-  } = {};
+): Promise<{ ok: true; article: IArticle } | { ok: false; reason: 'bad_input' | 'not_found' }> {
+  const $set: Record<string, string> = {};
+  let unsetImage = false;
 
   if (patch.title !== undefined) {
     $set.title = patch.title.trim();
@@ -109,20 +97,39 @@ export async function updateArticle(
   if (patch.category !== undefined) {
     $set.category = patch.category.trim();
   }
-  if (patch.status !== undefined) {
-    if (patch.status === ArticleStatus.PUBLISHED || patch.status === ArticleStatus.DRAFT) {
-      $set.status = patch.status;
+  if (patch.imageUrl !== undefined) {
+    const t = patch.imageUrl.trim();
+    if (t === '') {
+      unsetImage = true;
+    } else if (!isValidHttpUrl(t)) {
+      return { ok: false, reason: 'bad_input' };
+    } else {
+      $set.imageUrl = t;
     }
   }
-  if (patch.campus !== undefined && patch.campus.trim() !== '') {
-    $set.campus = patch.campus.trim();
-  }
 
-  if (Object.keys($set).length === 0) {
+  const hasMutation = Object.keys($set).length > 0 || unsetImage;
+  if (!hasMutation) {
     return { ok: true, article: existing };
   }
 
-  const updated = await Article.findByIdAndUpdate(existing._id, { $set }, { new: true }).exec();
+  const hasEmpty =
+    ($set.title !== undefined && $set.title === '') ||
+    ($set.body !== undefined && $set.body === '') ||
+    ($set.category !== undefined && $set.category === '');
+  if (hasEmpty) {
+    return { ok: false, reason: 'bad_input' };
+  }
+
+  const updateQuery: mongoose.UpdateQuery<IArticleDoc> = {};
+  if (Object.keys($set).length > 0) {
+    updateQuery.$set = $set;
+  }
+  if (unsetImage) {
+    updateQuery.$unset = { imageUrl: 1 };
+  }
+
+  const updated = await Article.findByIdAndUpdate(existing._id, updateQuery, { new: true }).exec();
   if (updated === null) {
     return { ok: false, reason: 'not_found' };
   }

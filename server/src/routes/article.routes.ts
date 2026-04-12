@@ -7,8 +7,8 @@ const router = Router();
 
 router.get('/', authenticate, articleController.listArticles);
 router.post('/', authenticate, articleController.createArticle);
-router.get('/:articleId', authenticate, authoriseArticleCampus, articleController.getArticleById);
-router.patch('/:articleId', authenticate, authoriseArticleCampus, articleController.updateArticle);
-router.delete('/:articleId', authenticate, authoriseArticleCampus, articleController.deleteArticle);
+router.get('/:id', authenticate, authoriseArticleCampus, articleController.getArticleById);
+router.put('/:id', authenticate, authoriseArticleCampus, articleController.updateArticle);
+router.delete('/:id', authenticate, authoriseArticleCampus, articleController.deleteArticle);
 
 export default router;

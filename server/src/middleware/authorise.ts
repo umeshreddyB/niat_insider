@@ -2,6 +2,14 @@ import type { Request, Response, NextFunction } from 'express';
 import * as articleService from '../services/article.service.js';
 import { HttpStatus } from '../types/auth.types.js';
 
+function getRouteId(req: Request): string | undefined {
+  const raw = req.params['id'];
+  if (Array.isArray(raw)) {
+    return raw[0];
+  }
+  return raw;
+}
+
 export async function authoriseArticleCampus(
   req: Request,
   res: Response,
@@ -14,8 +22,7 @@ export async function authoriseArticleCampus(
       return;
     }
 
-    const rawId = req.params.articleId;
-    const articleId = Array.isArray(rawId) ? rawId[0] : rawId;
+    const articleId = getRouteId(req);
     if (articleId === undefined || articleId === '') {
       res.status(HttpStatus.NOT_FOUND).json({ message: 'Article not found' });
       return;
@@ -36,6 +43,6 @@ export async function authoriseArticleCampus(
     next();
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Something went wrong' });
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' });
   }
 }

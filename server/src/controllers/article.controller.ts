@@ -15,7 +15,7 @@ export async function listArticles(req: Request, res: Response, next: NextFuncti
     res.status(HttpStatus.OK).json(articles);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Something went wrong' });
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' });
   }
 }
 
@@ -31,14 +31,14 @@ export async function createArticle(req: Request, res: Response, next: NextFunct
     const result = await articleService.createArticle(user, body);
 
     if (result.ok === false) {
-      res.status(400).json({ message: 'title, body, and category are required (campus required for admin)' });
+      res.status(HttpStatus.BAD_REQUEST).json({ message: 'title, body, and category are required' });
       return;
     }
 
     res.status(HttpStatus.CREATED).json(result.article);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Something went wrong' });
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' });
   }
 }
 
@@ -53,33 +53,28 @@ export function getArticleById(req: Request, res: Response): void {
 
 export async function updateArticle(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const user = req.user;
     const existing = req.article;
-    if (user === undefined || existing === undefined) {
-      res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Unauthorized' });
+    if (existing === undefined) {
+      res.status(HttpStatus.NOT_FOUND).json({ message: 'Article not found' });
       return;
     }
 
     const patch = req.body as UpdateArticleBody;
-    const result = await articleService.updateArticle(user, existing, patch);
+    const result = await articleService.updateArticle(existing, patch);
 
     if (result.ok === false) {
-      if (result.reason === 'forbidden') {
-        res.status(HttpStatus.FORBIDDEN).json({ message: 'Cannot assign article to another campus' });
-        return;
-      }
       if (result.reason === 'not_found') {
         res.status(HttpStatus.NOT_FOUND).json({ message: 'Article not found' });
         return;
       }
-      res.status(400).json({ message: 'Invalid input' });
+      res.status(HttpStatus.BAD_REQUEST).json({ message: 'Invalid title, body, category, or image URL' });
       return;
     }
 
     res.status(HttpStatus.OK).json(result.article);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Something went wrong' });
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' });
   }
 }
 
@@ -100,6 +95,6 @@ export async function deleteArticle(req: Request, res: Response, next: NextFunct
     res.status(HttpStatus.OK).json({ message: 'Deleted' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Something went wrong' });
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' });
   }
 }

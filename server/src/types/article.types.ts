@@ -8,26 +8,27 @@ export interface IArticle {
   title: string;
   body: string;
   category: string;
+  /** HTTPS/HTTP URL for cover image (optional) */
+  imageUrl?: string;
   campus: string;
   authorId: string;
   status: ArticleStatus;
   createdAt: Date;
 }
 
-/** JSON body for POST /api/articles */
+/** POST body — campus comes only from JWT, not from the client */
 export interface CreateArticleBody {
   title?: string;
   body?: string;
   category?: string;
-  campus?: string;
-  status?: string;
+  imageUrl?: string;
 }
 
-/** JSON body for PATCH /api/articles/:articleId */
+/** PUT body — only these fields may change (no campus/status/author) */
 export interface UpdateArticleBody {
   title?: string;
   body?: string;
   category?: string;
-  campus?: string;
-  status?: string;
+  /** Set empty string to remove cover image */
+  imageUrl?: string;
 }

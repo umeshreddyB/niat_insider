@@ -21,7 +21,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
     res.status(HttpStatus.OK).json(result);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Something went wrong' });
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' });
   }
 }
 
@@ -31,34 +31,34 @@ export async function register(req: Request, res: Response, next: NextFunction):
     const { email, password, campus } = body;
 
     if (!email || !password || !campus) {
-      res.status(400).json({ message: 'email, password, and campus are required' });
+      res.status(HttpStatus.BAD_REQUEST).json({ message: 'email, password, and campus are required' });
       return;
     }
 
     const result = await authService.registerUser(email, password, campus);
 
     if (result === 'validation') {
-      res.status(400).json({
+      res.status(HttpStatus.BAD_REQUEST).json({
         message: 'Invalid input (check email, campus, and password length)',
       });
       return;
     }
     if (result === 'duplicate') {
-      res.status(409).json({ message: 'Email already registered' });
+      res.status(HttpStatus.CONFLICT).json({ message: 'Email already registered' });
       return;
     }
 
     res.status(HttpStatus.CREATED).json(result);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Something went wrong' });
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' });
   }
 }
 
 export async function getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const payload = req.user;
-    if (!payload) {
+    if (payload === undefined) {
       res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Unauthorized' });
       return;
     }
@@ -72,6 +72,6 @@ export async function getMe(req: Request, res: Response, next: NextFunction): Pr
     res.status(HttpStatus.OK).json(user);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Something went wrong' });
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' });
   }
 }
