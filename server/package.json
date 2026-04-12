@@ -4,6 +4,7 @@
   "description": "",
   "main": "dist/server.js",
   "scripts": {
+    "tsc": "tsc",
     "build": "tsc",
     "start": "cross-env NODE_ENV=production node dist/server.js",
     "start:test": "cross-env NODE_ENV=test node dist/server.js",

@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import { env } from '../config/env.config.js';
 import { BCRYPT_SALT_ROUNDS, MIN_PASSWORD_LENGTH } from '../constants/app.constants.js';
-import { User, mapUserToIUser } from '../models/User.model.js';
+import { User, mapUserToIUser } from '../models/user.js';
 import { UserRole, type IUser, type ITokenPayload } from '../types/auth.types.js';
 
 function isMongoDuplicateKey(err: unknown): boolean {

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Article, mapArticleToIArticle, type IArticleDoc } from '../models/Article.model.js';
+import { Article, mapArticleToIArticle, type IArticleDoc } from '../models/article.js';
 import {
   ArticleStatus,
   type CreateArticleBody,
