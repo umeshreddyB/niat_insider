@@ -88,7 +88,7 @@ There is **no public registration**. Moderators are created by an admin; the fir
    ```
 
 3. That creates a user with role **ADMIN**. By default it uses:
-   - Email: `admin@niat-insider.local`
+   - Email: `admin@gmail.com`
    - Password: `ChangeMe123!`
    - Name: `NIAT Admin`
 
